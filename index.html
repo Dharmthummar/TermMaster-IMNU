@@ -1298,7 +1298,7 @@ const allViews=['login','loading','link','week','browse','grid','admin'];
 function show(v){allViews.forEach(x=>document.getElementById('view-'+x).classList.toggle('active',x===v));window.scrollTo(0,0);}
 function showTab(tab){
   if(tab==='admin'&&(!PROFILE||PROFILE.role!=='admin'))return;
-  ['week','browse','grid','admin'].forEach(v=>document.getElementById('view-'+v).classList.toggle('active',v===tab));
+  allViews.forEach(v=>document.getElementById('view-'+v).classList.toggle('active',v===tab));
   document.querySelectorAll('.tabbar button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   if(tab==='browse')backToBrowse();
   if(tab==='admin')loadAccounts();
