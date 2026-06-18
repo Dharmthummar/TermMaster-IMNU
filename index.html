@@ -1546,7 +1546,7 @@ function renderCalendar(sched){
     const k=weekRoll+'|'+s.course+'|'+s.div+'|'+date;const note=NOTES[k]||'';
     return `<div class="calblock${narrow?' narrow':''}" style="top:${top}px;height:${hgt}px;background:linear-gradient(135deg,${col},${col}d0)" data-note="${k}">
       ${narrow?'':`<a href="${gcalUrl(s,date,ci)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></a>`}
-      <div class="cb-abbr">${s.course}${s.div?'('+s.div+')':''}</div><div class="cb-time mono">${s.start}${narrow?'':'–'+s.end}</div>${narrow?'':`<div class="cb-nm">${ci.name}</div>`}${note?(narrow?`<div class="cb-note">📝</div>`:`<div class="cb-note">📝 ${escAttr(note)}</div>`):''}</div>`;
+      <div class="cb-abbr">${s.course}${s.div?'('+s.div+')':''}</div><div class="cb-time mono">${s.start}${narrow?'':'–'+s.end}</div>${narrow?'':`<div class="cb-nm">${ci.name}</div>`}${note?`<div class="cb-note">📝 ${escAttr(note)}</div>`:''}</div>`;
   };
   const opts=`<div class="cal-opts"><div class="seg sm">
       <button data-cm="day" class="${calMode==='day'?'on':''}">Day</button>
@@ -2064,7 +2064,5 @@ boot();
       })
       .catch(err => console.warn("Liquid glass texture load failed:", err));
   </script>
-  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3671875713292562"
-     crossorigin="anonymous"></script>
 </body>
 </html>
