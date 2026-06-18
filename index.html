@@ -331,7 +331,7 @@ h1.screen{font-family:'Space Grotesk';font-weight:700;font-size:clamp(20px,5.5vw
 .class-card .cc-top{display:flex;align-items:center;gap:8px}
 .class-card .abbr{font-family:'Space Grotesk';font-weight:700;font-size:15px;letter-spacing:-.01em}
 .class-card .divb{font-size:10px;font-weight:700;color:#fff;padding:1px 7px;border-radius:7px}
-.class-card .time{margin-left:auto;font-size:11px;font-weight:600}
+.class-card .time{margin-left:auto;font-size:13px;font-weight:700;color:#fff}
 .class-card .nm{font-size:clamp(11px,3vw,12.5px);color:var(--ink-soft);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .class-card .fac{font-size:clamp(10px,2.5vw,11px);color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cc-add{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:11px;padding:8px;border-radius:10px;
@@ -676,7 +676,7 @@ body{min-height:100vh;min-height:100dvh}
 
 /* class card: wrap chips, scale text */
 .class-card .cc-top{flex-wrap:wrap;gap:5px}
-.class-card .time{font-size:clamp(10px,2.8vw,11px)}
+.class-card .time{font-size:clamp(12px,3.5vw,13px);color:#fff}
 .class-card .abbr{font-size:clamp(13px,3.8vw,15px)}
 
 /* student header */
@@ -1522,7 +1522,7 @@ function renderAgenda(sched){
     if(d.slots.length){h+='<div class="rail">';d.slots.forEach(s=>{const ci=courseInfo(s.course);const col=divColor(s.course);
       const k=weekRoll+'|'+s.course+'|'+s.div+'|'+d.date;const note=NOTES[k]||'';
       h+=`<div class="slot"><div class="class-card"><div class="stripe" style="background:${col}"></div><div class="cc-in">
-        <div class="cc-top"><span class="abbr">${s.course}</span>${s.div?`<span class="divb" style="background:${col}">${s.div}</span>`:''}<span class="time mono" style="color:${col}">${s.start}\u2013${s.end}</span></div>
+        <div class="cc-top"><span class="abbr">${s.course}</span>${s.div?`<span class="divb" style="background:${col}">${s.div}</span>`:''}<span class="time mono">${s.start}\u2013${s.end}</span></div>
         <div class="nm">${ci.name}</div><div class="fac">\u{1F464} ${ci.faculty||'Faculty TBA'}</div>
         <a class="cc-add" href="${gcalUrl(s,d.date,ci)}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>Add to Google Calendar</a>
         <input class="cc-note" data-k="${k}" placeholder="${editable?'Add a note\u2026':'No note'}" value="${escAttr(note)}" ${editable?'':'disabled'}>
@@ -1558,7 +1558,7 @@ function renderCalendar(sched){
     let cols='';days.forEach(d=>{const dd=new Date(d.date+'T00:00:00');
       cols+=`<div class="calcol"><div class="calcol-h">${dd.toLocaleDateString('en-GB',{weekday:'short'})}<span>${dd.getDate()}</span></div>
         <div class="calcol-grid" style="height:${H}px">${hourGridLines()}${d.slots.map(s=>blockEl(s,d.date,true)).join('')}</div></div>`;});
-    inner=`<div class="calwrap week"><div class="calaxis" style="height:${H}px">${hourLabels()}</div><div class="calcols">${cols}</div></div>`;
+    inner=`<div class="calwrap week"><div class="calaxis"><div class="calcol-h" aria-hidden="true" style="visibility:hidden">X<span>0</span></div><div style="position:relative;height:${H}px">${hourLabels()}</div></div><div class="calcols">${cols}</div></div>`;
   }else{
     let strip='<div class="daystrip">';
     days.forEach((d,i)=>{const dd=new Date(d.date+'T00:00:00');
