@@ -1,0 +1,44 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      ".firebaserc",
+      ".github/**",
+      ".gitignore",
+      "firestore.rules",
+      "README.md",
+      "mbab_techcsemba202527202227termivfirstweekc/**",
+      "memory/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|png|jpg|jpeg|svg|ico|gif|webp)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=604800, immutable"
+          }
+        ]
+      },
+      {
+        "source": "/index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
+    ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

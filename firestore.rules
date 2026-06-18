@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 🔑 Put YOUR Google email(s) here — must match CONFIG.adminEmails in index.html
+    function isAdmin() {
+      return request.auth != null &&
+        request.auth.token.email in [
+          '22bcm016@nirmauni.ac.in'
+        ];
+    }
+
+    // Each signed-in person owns their own user doc.
+    // Admins can read everyone (for the Accounts list).
+    match /users/{uid} {
+      allow read:   if request.auth != null && (request.auth.uid == uid || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == uid;
+      allow update: if request.auth != null && (request.auth.uid == uid || isAdmin());
+    }
+
+    // The published schedule and ad config:
+    // any signed-in student can read; only admins can change.
+    match /app/{docId} {
+      allow read:  if request.auth != null;
+      allow write: if isAdmin();
+    }
+  }
+}
