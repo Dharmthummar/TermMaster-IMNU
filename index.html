@@ -1543,7 +1543,7 @@ function onWeekSearch(){
     it.addEventListener('click',()=>pickWeek(r));res.appendChild(it);});
 }
 function pickWeek(r){                        // tapping a match: clear results, show the page
-  weekRoll=r;calDayIdx=0;
+  weekRoll=r;calDayIdx=0;showPast=false;
   const inp=document.getElementById('wkSearch');if(inp)inp.value='';
   document.getElementById('wkResults').innerHTML='';
   document.getElementById('wkHint').textContent='';
@@ -1590,15 +1590,20 @@ function renderAgenda(sched){
   const total=sched.reduce((n,d)=>n+d.slots.length,0);
   if(!total)h+=`<div class="empty"><div class="big">\u{1F324}\uFE0F</div><b>No first-week classes.</b><div class="hint" style="text-align:center">Your courses start later this term. See the Grid tab.</div></div>`;
   const today=new Date().toISOString().slice(0,10);
-  let visible=sched.filter(d=>d.date>=today);
-  while(visible.length&&!visible[visible.length-1].slots.length)visible.pop();
-  if(total&&!visible.length)h+=`<div class="empty"><div class="big">\u2705</div><b>All done for this week!</b><div class="hint" style="text-align:center">No more classes this week. See the Grid tab for the full schedule.</div></div>`;
+  const pastDays=sched.filter(d=>d.date<today);
+  let upcomingDays=sched.filter(d=>d.date>=today);
+  while(upcomingDays.length&&!upcomingDays[upcomingDays.length-1].slots.length)upcomingDays.pop();
+  if(pastDays.length)h+=`<button id="pastToggle" style="display:inline-flex;align-items:center;gap:7px;margin-bottom:14px;font-size:12px;font-weight:600;color:var(--muted);padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface)">${showPast?'\u25b2 Hide past':'\u25bc Show past ('+pastDays.length+' day'+(pastDays.length!==1?'s':'')+')'}</button>`;
+  if(total&&!upcomingDays.length)h+=`<div class="empty"><div class="big">\u2705</div><b>All done for this week!</b><div class="hint" style="text-align:center">No more classes this week. See the Grid tab for the full schedule.</div></div>`;
+  const toRender=showPast?[...pastDays,...upcomingDays]:upcomingDays;
   const st=DATA.roster[weekRoll]||{classes:[]};
-  visible.forEach(d=>{
+  toRender.forEach(d=>{
+    const isPast=d.date<today;
     const dayCourseKeys=d.slots.map(s=>s.course+'|'+s.div);
     const myKeys=(st.classes||[]).map(c=>c.course+'|'+c.div);
     const dayNotices=noticesForDay(d.date, myKeys.length?myKeys:dayCourseKeys);
-    h+=`<div class="day"><div class="day-label"><span class="dow">${d.day}</span><span class="dt mono">${fmtDate(d.date)}</span>${d.slots.length?'':'<span class="none">Free day</span>'}</div>`;
+    h+=`<div class="day"${isPast?' style="opacity:0.42;pointer-events:none"':''}>` +
+       `<div class="day-label"><span class="dow">${d.day}</span><span class="dt mono">${fmtDate(d.date)}</span>${isPast?'<span class="none" style="background:rgba(255,255,255,.08);color:var(--faint)">Past</span>':(d.slots.length?'':'<span class="none">Free day</span>')}</div>`;
     dayNotices.forEach(n=>{
       const chips=[];
       (n.courses||[]).forEach(c=>{const[course,div]=c.split('|');chips.push(`<span class="nc-chip">${course}${div?'('+div+')':''}</span>`);});
@@ -1615,14 +1620,22 @@ function renderAgenda(sched){
       </div></div></div>`;});h+='</div>';}
     h+='</div>';});
   wrap.innerHTML=h;
+  document.getElementById('pastToggle')?.addEventListener('click',()=>{showPast=!showPast;renderAgenda(sched);});
   if(editable)wrap.querySelectorAll('.cc-note').forEach(inp=>inp.addEventListener('change',()=>{saveNote(weekRoll,inp.dataset.k,inp.value.trim());NOTES=loadNotes(weekRoll);}));
 }
 function timeMin(t){const[a,b]=t.split(':').map(Number);return a*60+b;}
 let calMode='week';
+let showPast=false;
 let NOTES={};
 function renderCalendar(sched){
   const wrap=document.getElementById('layoutArea');
-  const days=sched;if(calDayIdx>=days.length)calDayIdx=0;
+  const today=new Date().toISOString().slice(0,10);
+  const pastDaysCal=sched.filter(d=>d.date<today);
+  let upcomingCal=sched.filter(d=>d.date>=today);
+  while(upcomingCal.length&&!upcomingCal[upcomingCal.length-1].slots.length)upcomingCal.pop();
+  let days=showPast?[...pastDaysCal,...upcomingCal]:upcomingCal;
+  if(!days.length){wrap.innerHTML=`<div class="empty"><div class="big">✅</div><b>All done for this week!</b><div class="hint" style="text-align:center">No more classes this week. See the Grid tab for the full schedule.</div></div>`;return;}
+  if(calDayIdx>=days.length)calDayIdx=0;
   const START=480,END=1230,H=620,PXM=H/(END-START);
   const hourLines=()=>{let l='';for(let m=START;m<=END;m+=60){const top=(m-START)*PXM;l+=`<div class="calline" style="top:${top}px"></div><div class="calhour mono" style="top:${top}px">${String(Math.floor(m/60)).padStart(2,'0')}:00</div>`;}return l;};
   const hourLabels=()=>{let l='';for(let m=START;m<=END;m+=60){const top=(m-START)*PXM;l+=`<div class="calhour mono" style="top:${top}px">${String(Math.floor(m/60)).padStart(2,'0')}:00</div>`;}return l;};
@@ -1635,7 +1648,8 @@ function renderCalendar(sched){
       ${narrow?'':`<a href="${gcalUrl(s,date,ci)}" target="_blank" rel="noopener" onclick="event.stopPropagation()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 5v14M5 12h14"/></svg></a>`}
       <div class="cb-abbr">${s.course}${s.div?'('+s.div+')':''}</div><div class="cb-time mono">${s.start}${narrow?'':'–'+s.end}</div>${narrow?'':`<div class="cb-nm">${ci.name}</div>`}${note?`<div class="cb-note">📝 ${escAttr(note)}</div>`:''}</div>`;
   };
-  const opts=`<div class="cal-opts"><div class="seg sm">
+  const pastBtn=pastDaysCal.length?`<button id="calPastToggle" style="font-size:11px;font-weight:600;color:var(--muted);padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--surface)">${showPast?'▲ Hide past':'▼ Past ('+pastDaysCal.length+')'}</button>`:'';
+  const opts=`<div class="cal-opts" style="display:flex;align-items:center;gap:8px;justify-content:flex-end">${pastBtn}<div class="seg sm">
       <button data-cm="day" class="${calMode==='day'?'on':''}">Day</button>
       <button data-cm="week" class="${calMode==='week'?'on':''}">Week</button>
     </div></div>`;
@@ -1660,6 +1674,7 @@ function renderCalendar(sched){
   const legend=areas.length?`<div class="cal-legend">${areas.map(a=>`<span><i style="background:${areaVar(a)}"></i>${a}</span>`).join('')}</div>`:'';
   const tip=(weekRoll===PROFILE.roll)?`<div class="hint" style="text-align:center;margin-top:8px">Tap a class to add a personal note.</div>`:'';
   wrap.innerHTML=opts+inner+legend+tip;
+  document.getElementById('calPastToggle')?.addEventListener('click',()=>{showPast=!showPast;calDayIdx=0;renderCalendar(sched);});
   wrap.querySelectorAll('.daypill').forEach(b=>b.addEventListener('click',()=>{calDayIdx=+b.dataset.d;renderCalendar(sched);}));
   wrap.querySelectorAll('.seg.sm button').forEach(b=>b.addEventListener('click',()=>{calMode=b.dataset.cm;renderCalendar(sched);}));
   if(weekRoll===PROFILE.roll){
