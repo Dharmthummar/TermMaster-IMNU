@@ -1589,8 +1589,12 @@ function renderAgenda(sched){
   const editable=(weekRoll===PROFILE.roll);
   const total=sched.reduce((n,d)=>n+d.slots.length,0);
   if(!total)h+=`<div class="empty"><div class="big">\u{1F324}\uFE0F</div><b>No first-week classes.</b><div class="hint" style="text-align:center">Your courses start later this term. See the Grid tab.</div></div>`;
+  const today=new Date().toISOString().slice(0,10);
+  let visible=sched.filter(d=>d.date>=today);
+  while(visible.length&&!visible[visible.length-1].slots.length)visible.pop();
+  if(total&&!visible.length)h+=`<div class="empty"><div class="big">\u2705</div><b>All done for this week!</b><div class="hint" style="text-align:center">No more classes this week. See the Grid tab for the full schedule.</div></div>`;
   const st=DATA.roster[weekRoll]||{classes:[]};
-  sched.forEach(d=>{
+  visible.forEach(d=>{
     const dayCourseKeys=d.slots.map(s=>s.course+'|'+s.div);
     const myKeys=(st.classes||[]).map(c=>c.course+'|'+c.div);
     const dayNotices=noticesForDay(d.date, myKeys.length?myKeys:dayCourseKeys);
