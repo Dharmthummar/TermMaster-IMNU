@@ -552,6 +552,23 @@ body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .wk-box{margin-bottom:6px}
 .wk-clear{flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);color:var(--ink-soft);font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
 .wk-clear:active{background:rgba(255,255,255,.2)}
+/* notices */
+.notice-card{display:flex;gap:10px;align-items:flex-start;background:rgba(227,179,65,.13);border:1px solid rgba(227,179,65,.4);border-radius:13px;padding:11px 13px;margin-bottom:10px}
+.notice-card .nc-icon{font-size:18px;flex:0 0 auto;margin-top:1px}
+.notice-card .nc-body{flex:1;min-width:0}
+.notice-card .nc-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:5px}
+.notice-card .nc-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:rgba(227,179,65,.3);color:var(--warn)}
+.notice-card .nc-text{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.notice-item{background:var(--surface);border:1px solid var(--line);border-radius:13px;padding:12px 14px;margin-bottom:9px}
+.notice-item .ni-head{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+.notice-item .ni-chips{display:flex;gap:5px;flex-wrap:wrap;flex:1}
+.notice-item .ni-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--accent-soft);color:var(--accent-ink)}
+.notice-item .ni-del{font-size:12px;color:var(--danger);padding:3px 8px;border-radius:7px;border:1px solid rgba(255,107,107,.3);flex:0 0 auto}
+.notice-item .ni-text{font-size:12.5px;color:var(--ink-soft);line-height:1.5}
+.notice-parse{background:rgba(38,214,164,.1);border:1px solid rgba(38,214,164,.35);border-radius:11px;padding:10px 13px;margin:10px 0;font-size:12.5px;display:none}
+.notice-parse.show{display:block}
+.notice-parse b{color:var(--ok);display:block;margin-bottom:4px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+.notice-parse .np-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:3px}
 
 
 /* ===================================================== *
@@ -980,6 +997,7 @@ body{min-height:100vh;min-height:100dvh}
       <button class="on" data-panel="dashboard">Dashboard</button>
       <button data-panel="accounts">Accounts</button>
       <button data-panel="ingest">Update</button>
+      <button data-panel="notices">Notices</button>
       <button data-panel="ads">Ads</button>
     </div>
 
@@ -1083,6 +1101,26 @@ body{min-height:100vh;min-height:100dvh}
       <div class="actions"><button class="btn btn-ghost" id="exportAds">Export</button>
         <button class="btn btn-primary" id="saveAds">Publish ads</button></div>
     </div>
+
+    <div class="panel" id="panel-notices">
+      <div class="card-box">
+        <h3>📢 Paste college email</h3>
+        <div class="field">
+          <label>Paste the email text here</label>
+          <textarea id="noticeInput" rows="5" placeholder="e.g. IPM(D) session scheduled on 22.06.2026 will be held in 215 classroom."></textarea>
+        </div>
+        <div class="notice-parse" id="noticeParse">
+          <b>Detected</b>
+          <div class="np-row" id="noticeParseOut"></div>
+        </div>
+        <div class="actions" style="margin-top:8px">
+          <button class="btn btn-ghost" id="noticeClear">Clear</button>
+          <button class="btn btn-primary" id="noticeSave">Save &amp; Publish</button>
+        </div>
+      </div>
+      <div class="eyebrow" style="margin-top:4px">Active notices</div>
+      <div id="noticeList"><div class="hint">No notices yet.</div></div>
+    </div>
   </section>
 
   <nav class="tabbar hidden" id="tabbar">
@@ -1144,7 +1182,23 @@ let ADS = {
 };
 
 /* ---------- session times / areas / course index ---------- */
+let NOTICES_DATA=[];
 const SESSION_TIMES={2:['08:00','09:00'],3:['09:10','10:10'],4:['10:20','11:20'],5:['11:30','12:30'],6:['12:30','13:30'],7:['13:30','14:30'],8:['14:40','15:40'],9:['15:50','16:50'],10:['17:00','18:00'],11:['18:10','19:10'],12:['19:20','20:20']};
+function parseNoticeText(raw){
+  const text=raw.trim();const r={text:raw,date:null,courses:[],room:null};
+  const MN={jan:1,feb:2,mar:3,apr:4,may:5,jun:6,jul:7,aug:8,sep:9,oct:10,nov:11,dec:12};
+  let dm=text.match(/\b(\d{1,2})[.\-\/](\d{1,2})[.\-\/](\d{4})\b/);
+  if(dm){const y=+dm[3],m=+dm[2],d=+dm[1];if(m>=1&&m<=12&&d>=1&&d<=31)r.date=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+  if(!r.date){dm=text.match(/\b(\d{1,2})[- ]*(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[,\- ]*(\d{4})\b/i);
+    if(dm){const d=+dm[1],m=MN[dm[2].toLowerCase().slice(0,3)],y=+dm[3];r.date=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}}
+  if(!r.date){dm=text.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})[,\s]+(\d{4})\b/i);
+    if(dm){const m=MN[dm[1].toLowerCase().slice(0,3)],d=+dm[2],y=+dm[3];r.date=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}}
+  const cr=/\b([A-Z][A-Z&]{1,5})\s*\(\s*'?\s*([A-Z0-9])\s*\)/g;let cm;
+  while((cm=cr.exec(text.toUpperCase()))!==null)r.courses.push(cm[1]+'|'+cm[2]);
+  const rRoom=text.match(/(?:room|classroom|hall|lab)\s*[:\-#]?\s*([A-Z0-9\-]+)/i)||text.match(/\b([A-Z]?\d{2,4}[A-Z]?)\s*(?:room|class|hall|lab)/i);
+  if(rRoom)r.room=rRoom[1];
+  return r;
+}
 function areaVar(a){const m={'Finance':'Finance','Marketing':'Marketing','OB':'OB','DnA':'DnA','OM':'OM','E & S':'ES','General':'General'};return 'var(--a-'+(m[a]||'General')+')';}
 let COURSE={};
 function buildCourseIndex(){COURSE={};DATA.courses.forEach(c=>COURSE[c.abbr.toUpperCase()]=c);if(COURSE['S&DM'])COURSE['SDM']=COURSE['S&DM'];}
@@ -1392,6 +1446,11 @@ async function pullCloud(){
       ADS=ad.data().config;
       try{localStorage.setItem('tc_ads', JSON.stringify(ADS));}catch(err){}
     }
+    const nd=await fb.getDoc(fb.doc(fb.db,'app','notices'));
+    if(nd.exists()&&nd.data().items){
+      NOTICES_DATA=nd.data().items;
+      try{localStorage.setItem('tc_notices', JSON.stringify(NOTICES_DATA));}catch(err){}
+    }
   }catch(e){/* first run: nothing published yet */}
 }
 
@@ -1529,8 +1588,18 @@ function renderAgenda(sched){
   const editable=(weekRoll===PROFILE.roll);
   const total=sched.reduce((n,d)=>n+d.slots.length,0);
   if(!total)h+=`<div class="empty"><div class="big">\u{1F324}\uFE0F</div><b>No first-week classes.</b><div class="hint" style="text-align:center">Your courses start later this term. See the Grid tab.</div></div>`;
+  const st=DATA.roster[weekRoll]||{classes:[]};
   sched.forEach(d=>{
+    const dayCourseKeys=d.slots.map(s=>s.course+'|'+s.div);
+    const myKeys=(st.classes||[]).map(c=>c.course+'|'+c.div);
+    const dayNotices=noticesForDay(d.date, myKeys.length?myKeys:dayCourseKeys);
     h+=`<div class="day"><div class="day-label"><span class="dow">${d.day}</span><span class="dt mono">${fmtDate(d.date)}</span>${d.slots.length?'':'<span class="none">Free day</span>'}</div>`;
+    dayNotices.forEach(n=>{
+      const chips=[];
+      (n.courses||[]).forEach(c=>{const[course,div]=c.split('|');chips.push(`<span class="nc-chip">${course}${div?'('+div+')':''}</span>`);});
+      if(n.room)chips.push(`<span class="nc-chip">🏫 Room ${n.room}</span>`);
+      h+=`<div class="notice-card"><div class="nc-icon">📢</div><div class="nc-body">${chips.length?`<div class="nc-chips">${chips.join('')}</div>`:''}<div class="nc-text">${escAttr(n.text)}</div></div></div>`;
+    });
     if(d.slots.length){h+='<div class="rail">';d.slots.forEach(s=>{const ci=courseInfo(s.course);const col=divColor(s.course);
       const k=weekRoll+'|'+s.course+'|'+s.div+'|'+d.date;const note=NOTES[k]||'';
       h+=`<div class="slot"><div class="class-card"><div class="stripe" style="background:${col}"></div><div class="cc-in">
@@ -1781,6 +1850,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('on',p.id==='panel-'+b.dataset.panel));
   if(b.dataset.panel==='accounts')loadAccounts();
   if(b.dataset.panel==='ads')loadAdEditors();
+  if(b.dataset.panel==='notices')renderNoticesAdmin();
   if(b.dataset.panel==='dashboard'){Promise.resolve(loadAccounts()).then(renderAdminDash);}
 }));
 
@@ -1883,12 +1953,13 @@ async function handleFiles(files){
   }
   if(!xf.length){logLine('No Excel files found.','er');return;}
   logLine(xf.length+' Excel file(s).','ok');
-  const fresh={courses:[],first_week:[],roster:{},course_div_students:{},session_labels:DATA.session_labels,meta:Object.assign({},DATA.meta)};
+  const fresh={courses:[],first_week:[...(DATA.first_week||[])],roster:{},course_div_students:{},session_labels:DATA.session_labels,meta:Object.assign({},DATA.meta)};
   let master=false;
   for(const x of xf){let wb;try{wb=XLSX.read(x.data,{type:'array',cellDates:true});}catch(e){logLine('Skip '+x.name,'er');continue;}
     const isM=wb.SheetNames.some(n=>/class schedule|course detail/i.test(n));
     try{if(isM){parseMaster(wb,fresh);master=true;logLine('✓ Master: '+x.name,'ok');}else{const c=parseSubject(wb,fresh);logLine('✓ '+x.name+' ('+c+')','ok');}}catch(e){logLine('Error '+x.name+': '+e.message,'er');}}
   if(!master){logLine('No master file — keeping existing courses/grid.','er');fresh.courses=DATA.courses;fresh.first_week=DATA.first_week;}
+  if(!Object.keys(fresh.roster).length){fresh.roster=DATA.roster;fresh.course_div_students=DATA.course_div_students;logLine('No student files uploaded — keeping existing roster.','ok');}
   STAGED=fresh;document.getElementById('stCourses').textContent=fresh.courses.filter(c=>c.abbr!=='SIP').length;
   document.getElementById('stStudents').textContent=Object.keys(fresh.roster).length;
   document.getElementById('stDivs').textContent=Object.keys(fresh.course_div_students).length;
@@ -1899,21 +1970,24 @@ function parseMaster(wb,fresh){
   const dn=wb.SheetNames.find(n=>/course detail/i.test(n))||wb.SheetNames[0];const R=rows(wb.Sheets[dn]);
   fresh.courses=[];R.slice(1).forEach(r=>{const a=cl(r[2]);if(!a||/^total/i.test(a))return;fresh.courses.push({sl:cl(r[0]),code:cl(r[1]),abbr:a,name:cl(r[3]),area:cl(r[4]),credits:cl(r[5]),faculty:cl(r[6]),email:cl(r[8]),divisions:cl(r[9])});});
   const sn=wb.SheetNames.find(n=>/class schedule/i.test(n))||wb.SheetNames[1];const g=rows(wb.Sheets[sn]);
-  const cols=[2,3,4,5,6,7,8,9,10,11,12];fresh.first_week=[];
+  const cols=[2,3,4,5,6,7,8,9,10,11,12];const newDays=[];
   const allDates=[];
   for(let i=3;i<g.length;i++){const r=g[i];if(!r)continue;const dv=r[0];if(!(dv instanceof Date))continue;
     const iso=dv.toISOString().slice(0,10);
     if(!allDates.includes(iso))allDates.push(iso);}
   allDates.sort();
   const startDate=allDates[0]||'1970-01-01';
-  const endDate=allDates[Math.min(allDates.length-1,6)]||'2099-12-31';
+  const startMs=new Date(startDate+'T00:00:00Z').getTime();
+  const endDate=new Date(startMs+7*86400000).toISOString().slice(0,10);
   for(let i=3;i<g.length;i++){const r=g[i];if(!r)continue;const dv=r[0];if(!(dv instanceof Date))continue;
     const iso=dv.toISOString().slice(0,10);
-    if(iso<startDate||iso>endDate)continue;const slots=[];
+    if(iso<startDate||iso>=endDate)continue;const slots=[];
     cols.forEach(c=>{const v=cl(r[c]);if(!v)return;if(/lunch|break|commencement|last date|submission|presentation|office hours|schedule/i.test(v))return;
       const e=[];v.split(/[\/,]/).forEach(t=>{t=t.trim();if(!t)return;const m=t.match(/^([A-Za-z&]+)\s*\(?\s*'?\s*([A-Za-z0-9]*)\s*\)?$/);if(m)e.push({course:m[1].toUpperCase(),div:normDiv(m[2]),raw:t});});
       if(e.length)slots.push({time:cl(g[1]?g[1][c]:''),col:c,entries:e});});
-    fresh.first_week.push({date:iso,day:cl(r[1]),slots});}
+    newDays.push({date:iso,day:cl(r[1]),slots});}
+  newDays.forEach(d=>{if(!fresh.first_week.some(x=>x.date===d.date))fresh.first_week.push(d);});
+  fresh.first_week.sort((a,b)=>a.date<b.date?-1:1);
   if(fresh.first_week.length){
     const dates=fresh.first_week.map(d=>d.date).sort();
     const fmt=iso=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
@@ -1993,6 +2067,69 @@ document.getElementById('saveAds').addEventListener('click',async()=>{collectAds
   else toast('Ads updated (demo)');});
 document.getElementById('exportAds').addEventListener('click',()=>{collectAds();dl(new Blob([JSON.stringify(ADS,null,1)],{type:'application/json'}),'ads-config.json');});
 
+/* ============================================================ *
+ *  NOTICES
+ * ============================================================ */
+function noticesForDay(dateISO, myCourseKeys){
+  return NOTICES_DATA.filter(n=>{
+    if(n.date && n.date!==dateISO)return false;
+    if(n.courses && n.courses.length && myCourseKeys && myCourseKeys.length)
+      return n.courses.some(c=>myCourseKeys.includes(c));
+    return true;
+  });
+}
+function renderNoticesAdmin(){
+  const inp=document.getElementById('noticeInput');
+  const parseBox=document.getElementById('noticeParse');
+  const parseOut=document.getElementById('noticeParseOut');
+  const list=document.getElementById('noticeList');
+  if(!inp)return;
+  inp.addEventListener('input',()=>{
+    const p=parseNoticeText(inp.value);
+    const chips=[];
+    if(p.date)chips.push(`<span class="ni-chip">📅 ${fmtDate(p.date)}</span>`);
+    p.courses.forEach(c=>{const[course,div]=c.split('|');chips.push(`<span class="ni-chip">${course}${div?'('+div+')':''}</span>`);});
+    if(p.room)chips.push(`<span class="ni-chip">🏫 Room ${p.room}</span>`);
+    if(chips.length){parseBox.classList.add('show');parseOut.innerHTML=chips.join('');}
+    else{parseBox.classList.remove('show');}
+  },{once:false});
+  // re-attach on each render call
+  inp.oninput=()=>inp.dispatchEvent(new Event('input'));
+  document.getElementById('noticeClear').onclick=()=>{inp.value='';parseBox.classList.remove('show');parseOut.innerHTML='';};
+  document.getElementById('noticeSave').onclick=async()=>{
+    const raw=inp.value.trim();if(!raw){toast('Nothing to save.');return;}
+    const p=parseNoticeText(raw);
+    const n={id:Date.now().toString(36),text:raw,date:p.date,courses:p.courses,room:p.room,createdAt:new Date().toISOString()};
+    NOTICES_DATA.unshift(n);
+    try{localStorage.setItem('tc_notices',JSON.stringify(NOTICES_DATA));}catch(e){}
+    if(LIVE&&fb){
+      try{await fb.setDoc(fb.doc(fb.db,'app','notices'),{items:NOTICES_DATA,updatedAt:fb.serverTimestamp()});toast('Notice published to all students');}
+      catch(e){toast('Saved locally, cloud failed: '+e.message);}
+    }else{toast('Notice saved (demo)');}
+    inp.value='';parseBox.classList.remove('show');renderNoticeList(list);
+  };
+  renderNoticeList(list);
+}
+function renderNoticeList(list){
+  if(!list)return;
+  if(!NOTICES_DATA.length){list.innerHTML='<div class="hint">No notices yet.</div>';return;}
+  list.innerHTML=NOTICES_DATA.map(n=>{
+    const chips=[];
+    if(n.date)chips.push(`<span class="ni-chip">📅 ${fmtDate(n.date)}</span>`);
+    (n.courses||[]).forEach(c=>{const[course,div]=c.split('|');chips.push(`<span class="ni-chip">${course}${div?'('+div+')':''}</span>`);});
+    if(n.room)chips.push(`<span class="ni-chip">🏫 Room ${n.room}</span>`);
+    return `<div class="notice-item"><div class="ni-head"><div class="ni-chips">${chips.join('')}</div>
+      <button class="ni-del" data-nid="${n.id}">Delete</button></div>
+      <div class="ni-text">${escAttr(n.text)}</div></div>`;
+  }).join('');
+  list.querySelectorAll('.ni-del').forEach(btn=>btn.addEventListener('click',async()=>{
+    NOTICES_DATA=NOTICES_DATA.filter(n=>n.id!==btn.dataset.nid);
+    try{localStorage.setItem('tc_notices',JSON.stringify(NOTICES_DATA));}catch(e){}
+    if(LIVE&&fb){try{await fb.setDoc(fb.doc(fb.db,'app','notices'),{items:NOTICES_DATA,updatedAt:fb.serverTimestamp()});}catch(e){}}
+    renderNoticeList(list);toast('Notice deleted');
+  }));
+}
+
 /* utils */
 function dl(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),1500);}
 let toastT=null;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2600);}
@@ -2012,6 +2149,10 @@ async function boot(){
     const cachedAds = localStorage.getItem('tc_ads');
     if(cachedAds) {
       ADS = JSON.parse(cachedAds);
+    }
+    const cachedNotices = localStorage.getItem('tc_notices');
+    if(cachedNotices) {
+      NOTICES_DATA = JSON.parse(cachedNotices);
     }
   }catch(e){console.warn('LocalStorage cache read failed:', e);}
   buildCourseIndex();
